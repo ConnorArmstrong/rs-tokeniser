@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let vocab = bpe(contents, 2000, initial_vocab);
+    let vocab = bpe(contents, 10000, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
 
@@ -43,7 +43,7 @@ fn bpe(corpus: String, vocab_size: usize, initial_vocab: HashMap<String, i32>) -
         //println!("pair_count: {:?}", pair_count);
         
         if let Some(best_pair) = find_most_frequent_pair(&pair_count) {
-            //println!("Merging {} {}", best_pair.0, best_pair.1);
+            println!("Merging {} {}", best_pair.0, best_pair.1);
             merge_pair(&best_pair, &mut vocab, &mut corpus);
         } else {
             println!("No best pair found");
@@ -102,10 +102,6 @@ fn merge_pair(pair: &(String, String), vocab: &mut HashMap<String, i32>, data: &
     let new_token = format!("{}{}", pair.0, pair.1);
 
     // Check if the new token exceeds a certain length threshold
-    if new_token.len() > 10 {
-        return;
-    }
-
     // Replace all occurrences of the pair in the corpus with the new token
     let re = regex::Regex::new(&format!("{}{}", regex::escape(&pair.0), regex::escape(&pair.1))).unwrap();
     let count = re.find_iter(&*data).count() as i32;
@@ -115,8 +111,12 @@ fn merge_pair(pair: &(String, String), vocab: &mut HashMap<String, i32>, data: &
     *vocab.entry(new_token.clone()).or_insert(0) += count;
 
     // Update the counts of the individual characters
-    *vocab.get_mut(&pair.0).unwrap() -= count;
-    *vocab.get_mut(&pair.1).unwrap() -= count;
+    if let Some(entry_0) = vocab.get_mut(&pair.0) {
+        *entry_0 -= count;
+    }
+    if let Some(entry_1) = vocab.get_mut(&pair.1) {
+        *entry_1 -= count;
+    }
 }
 
 fn save_vocabulary(vocab: &HashMap<String, i32>, file_path: &str) -> io::Result<()> {
