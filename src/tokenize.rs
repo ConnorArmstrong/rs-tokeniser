@@ -9,7 +9,7 @@ pub struct Tokenizer {
 
 impl Tokenizer {
     pub fn new(input: String) -> Result<Self, io::Error> {
-        let initial_vocab_path = "output/initial_vocab.json";
+        let initial_vocab_path = "output/vocabulary.json";
 
         if !Path::new(initial_vocab_path).exists() {
             return Err(io::Error::new(io::ErrorKind::NotFound, "Vocab file does not exist"));
@@ -18,18 +18,20 @@ impl Tokenizer {
         let json = fs::read_to_string(initial_vocab_path)?;
         let map: HashMap<String, i32> = serde_json::from_str(&json)?;
 
-        let mut tokens: Vec<(String, i32)> = map.into_iter().collect();
-        // Sort tokens by their keys (string part) to prepare them for fst Map
-        tokens.sort_unstable_by_key(|item| item.0.clone());
-        println!("|||||| {:?}", tokens);
+        // Collect only the keys from the map and sort them
+        let mut tokens: Vec<String> = map.keys().cloned().collect();
+        //println!("Tokens")
+        tokens.sort_unstable(); // Sort the tokens lexicographically
+        println!("Tokens: {:?}", tokens);
         // Creating a MapBuilder to build an fst::Map
         let mut builder = MapBuilder::memory();
-        for (token, id) in tokens {
-            builder.insert(token, id as u64); // Insert each token with its ID
+        for token in tokens {
+            println!("Inserting \"{}\"", token);
+            builder.insert(&token, 0); // Insert each token with a placeholder value
         }
 
         let fst_map = builder.into_map(); // Construct the fst::Map
-
+        println!("{}", fst_map.len());
         Ok(Tokenizer {
             input,
             vocab: fst_map, // Store the constructed map
@@ -41,6 +43,13 @@ impl Tokenizer {
         let mut results = Vec::new();
         let automaton = Subsequence::new(&self.input);
         let mut stream = self.vocab.search(automaton).into_stream();
+        /*
+        let mut test_stream = self.vocab.stream();
+            while let Some((key, _)) = test_stream.next() {
+                println!("Stored key: '{}'", String::from_utf8_lossy(key));
+        }
+        */
+
 
         while let Some((token, _)) = stream.next() {
             if let Ok(matched_str) = std::str::from_utf8(token) {
@@ -60,5 +69,4 @@ fn main() {
     let tokens = tokenizer.tokenize();
     println!("Tokens found: {:?}", tokens);
 }
-
 */
