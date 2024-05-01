@@ -107,9 +107,9 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
     }
 
     println!("Finished iterations");
-    println!("Count: {}", count);
-    println!("Vocabulary: {:?}", vocab);
-    //println!("Tokenized Data: {:?}", corpus);
+    //println!("Count: {}", count);
+    //println!("Vocabulary: {:?}", vocab);
+    println!("Tokenized Data: {:?}", corpus);
 
     vocab
 }

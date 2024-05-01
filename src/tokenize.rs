@@ -41,32 +41,40 @@ impl Tokenizer {
     // Function to tokenize input string using fst Map
     pub fn tokenize(&self) -> Vec<String> {
         let mut results = Vec::new();
-        let automaton = Subsequence::new(&self.input);
-        let mut stream = self.vocab.search(automaton).into_stream();
-        /*
-        let mut test_stream = self.vocab.stream();
-            while let Some((key, _)) = test_stream.next() {
-                println!("Stored key: '{}'", String::from_utf8_lossy(key));
-        }
-        */
+        let mut position = 0;
 
+        while position < self.input.len() {
+            let slice = &self.input[position..];
+            let mut longest_match = None;
+            let mut longest_length = 0;
 
-        while let Some((token, _)) = stream.next() {
-            if let Ok(matched_str) = std::str::from_utf8(token) {
-                results.push(matched_str.to_string());
+            {
+                // Limit the scope of the stream
+                let mut stream = self.vocab.range().into_stream();
+                while let Some((token, _)) = stream.next() {
+                    let token_str = match std::str::from_utf8(token) {
+                        Ok(s) => s,
+                        Err(_) => continue,
+                    };
+
+                    // Check if the current token is a prefix of the remaining input slice
+                    if slice.starts_with(token_str) && token_str.len() > longest_length {
+                        longest_match = Some(token_str);
+                        longest_length = token_str.len();
+                    }
+                }
+            } // stream is dropped here, so its mutable borrow ends
+
+            // If a match is found, add it to results and move the position forward
+            if let Some(match_str) = longest_match {
+                results.push(match_str.to_string());
+                position += longest_length;
+            } else {
+                // No match found, increment position to avoid infinite loop
+                position += 1;
             }
         }
 
         results
     }
 }
-
-/*
-fn main() {
-    let input = "test input with various words including vocabulary words".to_string();
-    let tokenizer = Tokenizer::new(input).expect("Failed to create tokenizer");
-
-    let tokens = tokenizer.tokenize();
-    println!("Tokens found: {:?}", tokens);
-}
-*/
