@@ -60,23 +60,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let initial_vocab = initialize_vocab(&contents);
         save_initial_vocab(&initial_vocab, initial_vocab_path)?;
     }
-    
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let vocab = bpe(contents, 200, initial_vocab);
+    let (vocab, tokenized_string) = bpe(contents, 200, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
     
     let tokenizer = Decoder::new(text.to_string()).unwrap();
-    println!("{:?}", tokenizer.tokenize());
+    let reconstructed = tokenizer.tokenize();
+    //println!("{:?}", tokenizer.tokenize());
     //println!("{:?}", tokenizer.tokenize_string(&other_text));
-
+    assert_eq!(tokenized_string, reconstructed);
 
     Ok(())
 }
 
 
-fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String, i32>) -> HashMap<String, i32> {
+fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String, i32>) -> (HashMap<String, i32>, Vec<String>) {
     println!("Beginning BPE process");
 
     let mut vocab = initial_vocab;
@@ -112,7 +112,7 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
     //println!("Vocabulary: {:?}", vocab);
     println!("Tokenized Data: {:?}", corpus);
 
-    vocab
+    (vocab, corpus)
 }
 
 fn count_adjacent_pairs(tokens: &[String]) -> HashMap<(String, String), i32> {
