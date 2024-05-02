@@ -33,11 +33,25 @@ impl Decoder {
             .map(|(index, token)| (token.to_owned(), index))
             .collect();
 
+        let mut rng = thread_rng();
+        let mut colour_map: HashMap<usize, (u8, u8, u8)> = HashMap::new();
+
+        for i in 0..tokens.len() {
+            
+            let r: u8 = rng.gen_range(0..=255);
+            let g: u8 = rng.gen_range(0..=255);
+            let b: u8 = rng.gen_range(0..=255);
+
+            let colour = (r, g, b);
+
+            colour_map.insert(i, colour);
+        }
+
         Ok(Decoder {
             vocab: tokens, // Store the constructed map
             decoded: None,
             vocab_map,
-            colour_map: HashMap::new(),
+            colour_map,
         })
     }
 
@@ -94,42 +108,24 @@ impl Decoder {
     }
 
     fn recreate_string(&self, position_vector: &Vec<(String, Option<usize>)>) -> Vec<String> {
-        let mut index_map: HashMap<usize, String> = HashMap::new(); // Map each token index to its specified length
-        for (index, token) in self.vocab.iter().enumerate() {
-            index_map.insert(index, token.to_owned());
-        }
-
         let mut result = Vec::new();
 
+        // WARNING: for the time being this could get rid of intential successive equal tokens
         for item in position_vector.iter().map(|(_, e)| e).collect::<Vec<_>>() {
             let num = item.expect("ERROR HANDLING CHARACTER");
             if result.last() != Some(&num) {
                 result.push(num);
             }
         }
-        return result.iter().map(|element| index_map.get(element).unwrap().to_owned()).collect();
+        return result.iter().map(|&index: &usize| self.vocab[index].clone()).collect();
     }
 
     pub fn pretty_print(&mut self) {
-        println!();
-
-        if self.colour_map.is_empty() { // build up the colour map when needed
-            let mut rng = thread_rng();
-            for i in 0..self.vocab.len() {
-                
-                let r: u8 = rng.gen_range(0..=255);
-                let g: u8 = rng.gen_range(0..=255);
-                let b: u8 = rng.gen_range(0..=255);
-    
-                let colour = (r, g, b);
-    
-                self.colour_map.insert(i, colour);
-            }
-        }
-
         if self.decoded.is_none() {
             println!("Text not yet tokenized");
         }
+
+        println!();
 
         for token in self.decoded.as_ref().unwrap() {
             let token_index = self.vocab_map.get(token).unwrap();

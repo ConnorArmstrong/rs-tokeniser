@@ -81,7 +81,7 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
     let mut vocab = initial_vocab;
     let mut pair_count;
     let mut count = 0;
-    println!("vocab: {:?}", vocab);  // Debug print statement
+    println!("Initial Vocab: {:?}", vocab);  // Debug print statement
 
     let corpus_ptr = &mut corpus as *mut Vec<String>; // Get a raw pointer to corpus to sidepass the borrow checker
 
@@ -92,10 +92,10 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
         if let Some(best_pair) = find_most_frequent_pair(&pair_count) {
             //println!("Merging \"{}\" \"{}\"", best_pair.0, best_pair.1);
             unsafe {
-                merge_pair(best_pair, &mut vocab, &mut *corpus_ptr);
+                merge_pair(best_pair, &mut vocab, &mut *corpus_ptr); // raw pointer shenanigans
             }
         } else {
-            println!("No best pair found");
+            println!("No best pair found"); // most likely indicates an error
             break;
         }
 
@@ -134,7 +134,6 @@ fn count_adjacent_pairs(tokens: &[String]) -> HashMap<(String, String), i32> {
         )
 }
 
-
 fn find_most_frequent_pair(pair_count: &HashMap<(String, String), i32>) -> Option<(String, String)> {
     pair_count.par_iter()
     .max_by_key(|&(_, &count)| count)
@@ -143,15 +142,6 @@ fn find_most_frequent_pair(pair_count: &HashMap<(String, String), i32>) -> Optio
 
 fn merge_pair(pair: (String, String), vocab: &mut HashMap<String, i32>, data: &mut Vec<String>) {
     let new_token = format!("{}{}", pair.0, pair.1);
-
-
-    //println!("{:?}: {:?} {:?}", new_token, pair.0, pair.1);
-    // No need to remove the vocab directly
-    /*
-    let count_token1 = vocab.remove(&pair.0).unwrap_or(0);
-    let count_token2 = vocab.remove(&pair.1).unwrap_or(0);
-    vocab.insert(new_token.clone(), count_token1 + count_token2);
-    */
 
     let count_token1 = vocab.get(&pair.0).unwrap();
     let count_token2 = vocab.get(&pair.1).unwrap();
@@ -187,7 +177,6 @@ fn save_vocabulary(vocab: &HashMap<String, i32>, file_path: &str) -> io::Result<
     }
 }
 
-
 fn initialize_vocab(data: &Vec<String>) -> HashMap<String, i32> {
     let mut vocab = HashMap::new();
     for char in data {
@@ -195,7 +184,6 @@ fn initialize_vocab(data: &Vec<String>) -> HashMap<String, i32> {
     }
     vocab
 }
-
 
 fn save_initial_vocab(vocab: &HashMap<String, i32>, file_path: &str) -> io::Result<()> {
     let path = Path::new(file_path);
