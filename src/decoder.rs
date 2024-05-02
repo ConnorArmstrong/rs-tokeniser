@@ -1,6 +1,6 @@
-use std::{collections::{HashMap, HashSet}, fs, hash::Hash, io, path::Path};
+use std::{collections::HashMap, fs, io, path::Path};
 use serde_json; // Ensure serde_json is available for JSON processing
-use colored::{Color, Colorize, CustomColor};
+use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
 
 pub struct Decoder {
@@ -37,9 +37,7 @@ impl Decoder {
 
     pub fn tokenize(&mut self) -> Vec<String> {
         type CharInfo = (String, Option<usize>); // where the usize would be the corresponding token index in the vocab array
-        
-        let length = self.input.len();
-        
+                
         let mut position: Vec<CharInfo> = self.input
                                     .clone()
                                     .chars()
@@ -77,8 +75,11 @@ impl Decoder {
                 missing_vec.push(token.to_owned())
             }
         }
-        println!("{}", count);
-        println!("{:?}", missing_vec);
+        if !missing_vec.is_empty() {
+            println!("{}", count);
+            println!("{:?}", missing_vec);
+        }
+
         let output =  self.recreate_string(&position);
 
         self.decoded = Some(output.clone()); // For now
@@ -103,6 +104,7 @@ impl Decoder {
     }
 
     pub fn pretty_print(&self) {
+        println!();
         let mut colours: HashMap<usize, (u8, u8, u8)> = HashMap::new();
 
         let map: HashMap<String, usize> = self.vocab

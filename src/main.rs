@@ -1,4 +1,4 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 // My goal is to implement a Byte Pair Encoder in Rust
 // Currently only handle lower case, unpunctuated data.
@@ -11,9 +11,7 @@ use std::io::Write;
 use serde_json;
 
 use crate::decoder::Decoder;
-use crate::tokenize::Tokenizer;
 
-mod tokenize;
 mod decoder;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -62,17 +60,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let (vocab, tokenized_string) = bpe(contents, 200, initial_vocab);
+    let (vocab, _tokenized_string) = bpe(contents, 200, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
     
-    let mut tokenizer = Decoder::new(text.to_string()).unwrap();
-    let reconstructed = tokenizer.tokenize(); // will update
+    let mut tokenizer1 = Decoder::new(text.to_string()).unwrap();
+    let mut tokenizer2 = Decoder::new(other_text.to_string()).unwrap();
+    let reconstructed1: Vec<String> = tokenizer1.tokenize(); // will update
+    let reconstructed2: Vec<String> = tokenizer2.tokenize();
+    //println!("{:?}", reconstructed);
     //println!("{:?}", tokenizer.tokenize());
     //println!("{:?}", tokenizer.tokenize_string(&other_text));
-    tokenizer.pretty_print();
+    tokenizer1.pretty_print();
+    tokenizer2.pretty_print();
 
-    
+
     Ok(())
 }
 
