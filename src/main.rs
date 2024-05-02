@@ -2,6 +2,7 @@
 
 // My goal is to implement a Byte Pair Encoder in Rust
 // Currently only handle lower case, unpunctuated data.
+
 use std::fs::{self, File};
 use std::collections::HashMap;
 use std::path::Path;
@@ -66,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //tokenizer.pretty_print();
 
     tokenizer.compare_to_original(text.to_string(), _tokenized_string);
-    println!();
+    println!("\n");
     tokenizer.tokenize(other_text.to_string());
     tokenizer.pretty_print();
 
@@ -90,7 +91,7 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
         
         if let Some(best_pair) = find_most_frequent_pair(&pair_count) {
             //println!("Merging \"{}\" \"{}\"", best_pair.0, best_pair.1);
-            unsafe {
+            unsafe { // TODO: restructure this in the future
                 merge_pair(best_pair, &mut vocab, &mut *corpus_ptr); // raw pointer shenanigans
             }
         } else {

@@ -22,7 +22,7 @@ impl Decoder {
         let json = fs::read_to_string(initial_vocab_path)?;
         let map: HashMap<String, i32> = serde_json::from_str(&json)?;
 
-        // Collect only the keys (the tokens) from the map and sort them by length
+        // Collect only the keys (tokens) from the map and sort them by length
         let mut tokens: Vec<String> = map.keys().cloned().collect();
         tokens.sort_by(|a, b| b.len().cmp(&a.len())); // sort them in decreasing order by length
         //println!("Tokens: {:?}", tokens);
@@ -33,7 +33,7 @@ impl Decoder {
             .map(|(index, token)| (token.to_owned(), index))
             .collect();
 
-        let mut rng = thread_rng();
+        let mut rng = thread_rng(); // random colours for each token
         let mut colour_map: HashMap<usize, (u8, u8, u8)> = HashMap::new();
 
         for i in 0..tokens.len() {
@@ -47,7 +47,7 @@ impl Decoder {
         }
 
         Ok(Decoder {
-            vocab: tokens, // Store the constructed map
+            vocab: tokens, 
             decoded: None,
             vocab_map,
             colour_map,
@@ -72,11 +72,12 @@ impl Decoder {
         //    if false: continue to the next occurence
         // continue through all tokens
 
+        // this works because the tokens are sorted - the larger tokens filters as much as possible and all remaining tokens can be done by character
         for (location, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
             let window_size = token.len();
 
             for i in 0..=position.len() - window_size { // create the window
-                let window = &position[i..i + window_size];
+                let window = &position[i..i + window_size]; // slide window across
                 if window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token && window.iter().all(|(_, b)| *b == None) {
                     for index in i..i + window_size {
                         position[index].1 = Some(location); // Mark with the token index
@@ -110,14 +111,14 @@ impl Decoder {
     fn recreate_string(&self, position_vector: &Vec<(String, Option<usize>)>) -> Vec<String> {
         let mut result = Vec::new();
 
-        // WARNING: for the time being this could get rid of intential successive equal tokens
+        // WARNING: for the time being this could get rid of intential successive equal tokens - add count value to the option usize ie Option<usize, usize)
         for item in position_vector.iter().map(|(_, e)| e).collect::<Vec<_>>() {
             let num = item.expect("Uknown or unencoded token"); 
             if result.last() != Some(&num) {
                 result.push(num);
             }
         }
-        return result.iter().map(|&index: &usize| self.vocab[index].clone()).collect();
+        return result.iter().map(|&index: &usize| self.vocab[index].clone()).collect(); // convert the index to the respective string
     }
 
     pub fn pretty_print(&self) {
@@ -151,7 +152,7 @@ impl Decoder {
                 b: token_colour.2,
             }));
         }
-
+        println!();
         self.tokenize(original_string);
         self.pretty_print();
 
