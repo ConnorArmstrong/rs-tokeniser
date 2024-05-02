@@ -10,10 +10,11 @@ use rayon::prelude::*;
 use std::io::Write;
 use serde_json;
 
+use crate::decoder::Decoder;
 use crate::tokenize::Tokenizer;
 
 mod tokenize;
-
+mod decoder;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     /*
@@ -62,11 +63,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let vocab = bpe(contents, 125, initial_vocab);
+    let vocab = bpe(contents, 200, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
     
-    let tokenizer = Tokenizer::new(text.to_string()).unwrap();
+    let tokenizer = Decoder::new(text.to_string()).unwrap();
     println!("{:?}", tokenizer.tokenize());
     //println!("{:?}", tokenizer.tokenize_string(&other_text));
 
@@ -90,7 +91,7 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
         //println!("pair_count: {:?}", pair_count);
         
         if let Some(best_pair) = find_most_frequent_pair(&pair_count) {
-            println!("Merging \"{}\" \"{}\"", best_pair.0, best_pair.1);
+            //println!("Merging \"{}\" \"{}\"", best_pair.0, best_pair.1);
             unsafe {
                 merge_pair(best_pair, &mut vocab, &mut *corpus_ptr);
             }
@@ -106,7 +107,7 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
         }
     }
 
-    println!("Finished iterations");
+    //println!("Finished iterations");
     //println!("Count: {}", count);
     //println!("Vocabulary: {:?}", vocab);
     println!("Tokenized Data: {:?}", corpus);

@@ -27,7 +27,6 @@ impl Tokenizer {
         let mut builder = MapBuilder::memory();
         let mut count = 0;
         for token in tokens {
-            println!("Inserting \"{}\"", token);
             builder.insert(&token, count); // Insert each token with a placeholder value
             count += 1;
         }
@@ -42,6 +41,7 @@ impl Tokenizer {
 
     // Function to tokenize input string using fst Map
     pub fn tokenize(&self) -> Vec<String> {
+        todo!();
         let mut results = Vec::new();
         let mut position = 0;
     
@@ -63,7 +63,6 @@ impl Tokenizer {
                         longest_length = token_str.len();
                     }
                 }
-                drop(stream); // Explicitly drop the stream
             }
     
             if let Some(match_str) = longest_match {
