@@ -64,16 +64,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
     
-    let mut tokenizer1 = Decoder::new(text.to_string()).unwrap();
-    let mut tokenizer2 = Decoder::new(other_text.to_string()).unwrap();
-    let reconstructed1: Vec<String> = tokenizer1.tokenize(); // will update
-    let reconstructed2: Vec<String> = tokenizer2.tokenize();
-    //println!("{:?}", reconstructed);
-    //println!("{:?}", tokenizer.tokenize());
-    //println!("{:?}", tokenizer.tokenize_string(&other_text));
-    tokenizer1.pretty_print();
-    tokenizer2.pretty_print();
 
+    let mut tokenizer: Decoder = Decoder::new().unwrap();
+    tokenizer.tokenize(text.to_string());
+    tokenizer.pretty_print();
+    tokenizer.tokenize(other_text.to_string());
+    tokenizer.pretty_print();
 
     Ok(())
 }

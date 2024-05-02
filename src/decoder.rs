@@ -4,15 +4,15 @@ use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
 
 pub struct Decoder {
-    vocab: Vec<String>, 
-    input: String, // the text to be tokenized
+    vocab: Vec<String>, // The list of tokens
     decoded: Option<Vec<String>>, // the final output
+    vocab_map: HashMap<String, usize>, // mapping each string to its index
+    colour_map: HashMap<usize, (u8, u8, u8)>,
 }
 
 
-
 impl Decoder {
-    pub fn new(input: String) -> Result<Self, io::Error> {
+    pub fn new() -> Result<Self, io::Error> {
         let initial_vocab_path = "output/vocabulary.json";
 
         if !Path::new(initial_vocab_path).exists() {
@@ -22,25 +22,32 @@ impl Decoder {
         let json = fs::read_to_string(initial_vocab_path)?;
         let map: HashMap<String, i32> = serde_json::from_str(&json)?;
 
-        // Collect only the keys from the map and sort them
+        // Collect only the keys (the tokens) from the map and sort them by length
         let mut tokens: Vec<String> = map.keys().cloned().collect();
-        //println!("Tokens")
         tokens.sort_by(|a, b| b.len().cmp(&a.len())); // sort them in decreasing order by length
-        println!("Tokens: {:?}", tokens);
+        //println!("Tokens: {:?}", tokens);
     
+        let vocab_map: HashMap<String, usize> = tokens
+            .iter()
+            .enumerate()
+            .map(|(index, token)| (token.to_owned(), index))
+            .collect();
+
         Ok(Decoder {
-            input: input.replace("\n", ""),
             vocab: tokens, // Store the constructed map
             decoded: None,
+            vocab_map,
+            colour_map: HashMap::new(),
         })
     }
 
-    pub fn tokenize(&mut self) -> Vec<String> {
+    pub fn tokenize(&mut self, input: String) -> Vec<String> {
         type CharInfo = (String, Option<usize>); // where the usize would be the corresponding token index in the vocab array
                 
-        let mut position: Vec<CharInfo> = self.input
+        let mut position: Vec<CharInfo> = input
                                     .clone()
                                     .chars()
+                                    .filter(|c| *c != '\n')
                                     .map(|c| (c.to_string(), None))
                                     .collect();
 
@@ -87,9 +94,9 @@ impl Decoder {
     }
 
     fn recreate_string(&self, position_vector: &Vec<(String, Option<usize>)>) -> Vec<String> {
-        let mut length_map: HashMap<usize, String> = HashMap::new(); // Map each token index to its specified length
+        let mut index_map: HashMap<usize, String> = HashMap::new(); // Map each token index to its specified length
         for (index, token) in self.vocab.iter().enumerate() {
-            length_map.insert(index, token.to_owned());
+            index_map.insert(index, token.to_owned());
         }
 
         let mut result = Vec::new();
@@ -100,29 +107,24 @@ impl Decoder {
                 result.push(num);
             }
         }
-        return result.iter().map(|element| length_map.get(element).unwrap().to_owned()).collect();
+        return result.iter().map(|element| index_map.get(element).unwrap().to_owned()).collect();
     }
 
-    pub fn pretty_print(&self) {
+    pub fn pretty_print(&mut self) {
         println!();
-        let mut colours: HashMap<usize, (u8, u8, u8)> = HashMap::new();
 
-        let map: HashMap<String, usize> = self.vocab
-                                            .iter()
-                                            .enumerate()
-                                            .map(|(index, token)| (token.to_owned(), index))
-                                            .collect();
-
-        let mut rng = thread_rng();
-        for i in 0..self.vocab.len() {
-            
-            let r: u8 = rng.gen_range(0..=255);
-            let g: u8 = rng.gen_range(0..=255);
-            let b: u8 = rng.gen_range(0..=255);
-
-            let colour = (r, g, b);
-
-            colours.insert(i, colour);
+        if self.colour_map.is_empty() { // build up the colour map when needed
+            let mut rng = thread_rng();
+            for i in 0..self.vocab.len() {
+                
+                let r: u8 = rng.gen_range(0..=255);
+                let g: u8 = rng.gen_range(0..=255);
+                let b: u8 = rng.gen_range(0..=255);
+    
+                let colour = (r, g, b);
+    
+                self.colour_map.insert(i, colour);
+            }
         }
 
         if self.decoded.is_none() {
@@ -130,8 +132,8 @@ impl Decoder {
         }
 
         for token in self.decoded.as_ref().unwrap() {
-            let token_index = map.get(token).unwrap();
-            let token_colour = colours.get(token_index).unwrap_or(&(0, 0, 0));
+            let token_index = self.vocab_map.get(token).unwrap();
+            let token_colour = self.colour_map.get(token_index).unwrap_or(&(0, 0, 0));
 
             print!("{}", token.as_str().custom_color(CustomColor {
                 r: token_colour.0,
@@ -139,6 +141,5 @@ impl Decoder {
                 b: token_colour.2,
             }));
         }
-
     }
 }
