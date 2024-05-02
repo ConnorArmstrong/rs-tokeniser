@@ -1,12 +1,15 @@
-use std::{collections::HashMap, fs, io, path::Path};
+use std::{collections::{HashMap, HashSet}, fs, hash::Hash, io, path::Path};
 use serde_json; // Ensure serde_json is available for JSON processing
-
-
+use colored::{Color, Colorize, CustomColor};
+use rand::{thread_rng, Rng};
 
 pub struct Decoder {
     vocab: Vec<String>, 
     input: String, // the text to be tokenized
+    decoded: Option<Vec<String>>, // the final output
 }
+
+
 
 impl Decoder {
     pub fn new(input: String) -> Result<Self, io::Error> {
@@ -28,10 +31,11 @@ impl Decoder {
         Ok(Decoder {
             input: input.replace("\n", ""),
             vocab: tokens, // Store the constructed map
+            decoded: None,
         })
     }
 
-    pub fn tokenize(&self) -> Vec<String> {
+    pub fn tokenize(&mut self) -> Vec<String> {
         type CharInfo = (String, Option<usize>); // where the usize would be the corresponding token index in the vocab array
         
         let length = self.input.len();
@@ -75,7 +79,10 @@ impl Decoder {
         }
         println!("{}", count);
         println!("{:?}", missing_vec);
-        return self.recreate_string(&position);
+        let output =  self.recreate_string(&position);
+
+        self.decoded = Some(output.clone()); // For now
+        return output;
     }
 
     fn recreate_string(&self, position_vector: &Vec<(String, Option<usize>)>) -> Vec<String> {
@@ -93,5 +100,43 @@ impl Decoder {
             }
         }
         return result.iter().map(|element| length_map.get(element).unwrap().to_owned()).collect();
+    }
+
+    pub fn pretty_print(&self) {
+        let mut colours: HashMap<usize, (u8, u8, u8)> = HashMap::new();
+
+        let map: HashMap<String, usize> = self.vocab
+                                            .iter()
+                                            .enumerate()
+                                            .map(|(index, token)| (token.to_owned(), index))
+                                            .collect();
+
+        let mut rng = thread_rng();
+        for i in 0..self.vocab.len() {
+            
+            let r: u8 = rng.gen_range(0..=255);
+            let g: u8 = rng.gen_range(0..=255);
+            let b: u8 = rng.gen_range(0..=255);
+
+            let colour = (r, g, b);
+
+            colours.insert(i, colour);
+        }
+
+        if self.decoded.is_none() {
+            println!("Text not yet tokenized");
+        }
+
+        for token in self.decoded.as_ref().unwrap() {
+            let token_index = map.get(token).unwrap();
+            let token_colour = colours.get(token_index).unwrap_or(&(0, 0, 0));
+
+            print!("{}", token.as_str().custom_color(CustomColor {
+                r: token_colour.0,
+                g: token_colour.1,
+                b: token_colour.2,
+            }));
+        }
+
     }
 }
