@@ -16,7 +16,6 @@ mod decoder;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     /*
-    
     println!("Reading file...");
     let filename = "src/text8.txt";
     let file_content = fs::read_to_string(filename)?;
@@ -25,9 +24,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|c| if c == ' ' { "_".to_string() } else { c.to_string()})
         .collect();
     println!("file read.");
-    
-    
     */
+
     let text = "the quick brown fox jumped over the lazy dog and that was just the beginning of the tale 
         it told of its adventures throughout the forest the fox always loved to explore and discover new places and 
         today was no different as it made its way through the underbrush it came across many other creatures some 
@@ -53,7 +51,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
-    
     if !Path::new(initial_vocab_path).exists() {
         let initial_vocab = initialize_vocab(&contents);
         save_initial_vocab(&initial_vocab, initial_vocab_path)?;
@@ -63,11 +60,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (vocab, _tokenized_string) = bpe(contents, 200, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
-    
 
     let mut tokenizer: Decoder = Decoder::new().unwrap();
-    tokenizer.tokenize(text.to_string());
-    tokenizer.pretty_print();
+    //tokenizer.tokenize(text.to_string());
+    //tokenizer.pretty_print();
+
+    tokenizer.compare_to_original(text.to_string(), _tokenized_string);
+    println!();
     tokenizer.tokenize(other_text.to_string());
     tokenizer.pretty_print();
 

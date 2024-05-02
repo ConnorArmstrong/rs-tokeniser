@@ -37,7 +37,6 @@ impl Decoder {
         let mut colour_map: HashMap<usize, (u8, u8, u8)> = HashMap::new();
 
         for i in 0..tokens.len() {
-            
             let r: u8 = rng.gen_range(0..=255);
             let g: u8 = rng.gen_range(0..=255);
             let b: u8 = rng.gen_range(0..=255);
@@ -86,7 +85,7 @@ impl Decoder {
             }
         }
 
-        let mut count = 0;
+        let mut count = 0; // Debugging and Error information
         let mut missing_vec = Vec::new();
         
         for item in position.iter() {
@@ -96,7 +95,8 @@ impl Decoder {
                 missing_vec.push(token.to_owned())
             }
         }
-        if !missing_vec.is_empty() {
+
+        if !missing_vec.is_empty() { // unknown or unencoded tokens
             println!("{}", count);
             println!("{:?}", missing_vec);
         }
@@ -112,7 +112,7 @@ impl Decoder {
 
         // WARNING: for the time being this could get rid of intential successive equal tokens
         for item in position_vector.iter().map(|(_, e)| e).collect::<Vec<_>>() {
-            let num = item.expect("ERROR HANDLING CHARACTER");
+            let num = item.expect("Uknown or unencoded token"); 
             if result.last() != Some(&num) {
                 result.push(num);
             }
@@ -120,15 +120,16 @@ impl Decoder {
         return result.iter().map(|&index: &usize| self.vocab[index].clone()).collect();
     }
 
-    pub fn pretty_print(&mut self) {
+    pub fn pretty_print(&self) {
         if self.decoded.is_none() {
             println!("Text not yet tokenized");
+            return
         }
 
         println!();
 
         for token in self.decoded.as_ref().unwrap() {
-            let token_index = self.vocab_map.get(token).unwrap();
+            let token_index = self.vocab_map.get(token).unwrap_or(&usize::max_value()); // if token not encountered make it white
             let token_colour = self.colour_map.get(token_index).unwrap_or(&(0, 0, 0));
 
             print!("{}", token.as_str().custom_color(CustomColor {
@@ -138,4 +139,23 @@ impl Decoder {
             }));
         }
     }
+
+    pub fn compare_to_original(&mut self, original_string: String, tokenized_data: Vec<String>) {
+        for token in tokenized_data {
+            let token_index = self.vocab_map.get(&token).unwrap_or(&usize::max_value()); // if token not encountered make it white
+            let token_colour = self.colour_map.get(token_index).unwrap_or(&(0, 0, 0));
+
+            print!("{}", token.as_str().custom_color(CustomColor {
+                r: token_colour.0,
+                g: token_colour.1,
+                b: token_colour.2,
+            }));
+        }
+
+        self.tokenize(original_string);
+        self.pretty_print();
+
+
+    }
+    
 }
