@@ -3,7 +3,7 @@ use serde_json; // Ensure serde_json is available for JSON processing
 use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
 
-pub struct Decoder {
+pub struct Tokeniser {
     vocab: Vec<String>, // The list of tokens
     decoded: Option<Vec<String>>, // the final output
     vocab_map: HashMap<String, usize>, // mapping each string to its index
@@ -11,7 +11,7 @@ pub struct Decoder {
 }
 
 
-impl Decoder {
+impl Tokeniser {
     pub fn new() -> Result<Self, io::Error> {
         let initial_vocab_path = "output/vocabulary.json";
 
@@ -46,7 +46,7 @@ impl Decoder {
             colour_map.insert(i, colour);
         }
 
-        Ok(Decoder {
+        Ok(Tokeniser {
             vocab: tokens, 
             decoded: None,
             vocab_map,

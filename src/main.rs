@@ -11,9 +11,9 @@ use rayon::prelude::*;
 use std::io::Write;
 use serde_json;
 
-use crate::decoder::Decoder;
+use crate::tokeniser::Tokeniser;
 
-mod decoder;
+mod tokeniser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     /*
@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
 
-    let mut tokenizer: Decoder = Decoder::new().unwrap();
+    let mut tokenizer: Tokeniser = Tokeniser::new().unwrap();
     //tokenizer.tokenize(text.to_string());
     //tokenizer.pretty_print();
 
