@@ -10,22 +10,29 @@ use std::io;
 use rayon::prelude::*;
 use std::io::Write;
 use serde_json;
+use std::io::{BufRead, BufReader};
 
 use crate::tokeniser::Tokeniser;
 
 mod tokeniser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /*
+    
+    
     println!("Reading file...");
-    let filename = "src/text8.txt";
-    let file_content = fs::read_to_string(filename)?;
-    let mut contents: Vec<String> = file_content // need to have a Vec<String>, where each string is a single character.
+    let filename = "src/text8.txt"; // 124_301_826 words
+    /*
+        let file_content = fs::read_to_string(filename)?;
+    let contents: Vec<String> = file_content // need to have a Vec<String>, where each string is a single character.
         .chars()
-        .map(|c| if c == ' ' { "_".to_string() } else { c.to_string()})
+        .map(|c| c.to_string())
+        .filter(|f| f != "\n")
         .collect();
-    println!("file read.");
     */
+
+    let contents = _read_words(&filename, 1000000);
+    println!("file read.");
+    
 
     let text = "the quick brown fox jumped over the lazy dog and that was just the beginning of the tale 
         it told of its adventures throughout the forest the fox always loved to explore and discover new places and 
@@ -43,11 +50,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         knew it had found a new way to express its joy and creativity through the enchanting sounds of the xylophone"
             .replace("\n", "");
 
-    let contents: Vec<String> = text
+    /*
+        let contents: Vec<String> = text
         .chars()
         .map(|c| c.to_string())
         .filter(|f| f != "\n")
         .collect();
+    */
+
 
     println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
@@ -56,17 +66,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let initial_vocab = initialize_vocab(&contents);
         save_initial_vocab(&initial_vocab, initial_vocab_path)?;
     }
+    
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let (vocab, _tokenized_string) = bpe(contents, 200, initial_vocab);
+    let (vocab, _tokenized_string) = bpe(contents, 55000, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
 
     let mut tokenizer: Tokeniser = Tokeniser::new().unwrap();
-    //tokenizer.tokenize(text.to_string());
-    //tokenizer.pretty_print();
 
-    tokenizer.compare_to_original(text.to_string(), _tokenized_string);
+
+    //tokenizer.compare_to_original(text.to_string(), _tokenized_string);
+
+    tokenizer.tokenize(text.to_string());
+    tokenizer.pretty_print();
     println!("\n");
     tokenizer.tokenize(other_text.to_string());
     tokenizer.pretty_print();
@@ -90,8 +103,8 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
         //println!("pair_count: {:?}", pair_count);
         
         if let Some(best_pair) = find_most_frequent_pair(&pair_count) {
-            //println!("Merging \"{}\" \"{}\"", best_pair.0, best_pair.1);
-            unsafe { // TODO: restructure this in the future
+            println!("Merging \"{}\" \"{}\"", best_pair.0, best_pair.1);
+            unsafe { // TODO: -- restructure this in the future! --
                 merge_pair(best_pair, &mut vocab, &mut *corpus_ptr); // raw pointer shenanigans
             }
         } else {
@@ -202,4 +215,49 @@ fn load_initial_vocab(file_path: &str) -> io::Result<HashMap<String, i32>> {
     let json = fs::read_to_string(file_path)?;
     let vocab: HashMap<String, i32> = serde_json::from_str(&json).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     Ok(vocab)
+}
+
+fn _read_words(file_path: &str, word_count: usize) -> Vec<String> {
+    // Open the file
+    let file = File::open(file_path).expect("Unable to open the file");
+    let reader = BufReader::new(file);
+    
+    // Initialize a vector to store the characters
+    let mut contents = Vec::new();
+    let mut total_words = 0;
+
+    // Iterate through lines
+    for line_result in reader.lines() {
+        let line = line_result.expect("Unable to read line");
+
+        // Split the line into words using whitespace as the delimiter
+        for word in line.split_whitespace() {
+            total_words += 1;
+
+            // Convert each word to characters and add spaces between words
+            for char in word.chars() {
+                contents.push(char.to_string());
+            }
+            contents.push(" ".to_string()); // Add a space after each word
+            
+            // Stop if we've reached the desired word count
+            if total_words >= word_count {
+                break;
+            }
+        }
+
+        // Stop the outer loop if we've reached the desired word count
+        if total_words >= word_count {
+            break;
+        }
+    }
+
+    // Remove the last space added if it exists
+    if let Some(last) = contents.last() {
+        if last == " " {
+            contents.pop();
+        }
+    }
+
+    contents
 }
