@@ -130,20 +130,25 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
 }
 
 fn count_adjacent_pairs(tokens: &[String]) -> HashMap<(String, String), i32> {
+    // Estimate the capacity to reduce rehashing
+    let estimated_capacity = tokens.len() / 2;
+
     tokens.par_windows(2)
-        .map(|window| {
-            let token1 = window[0].clone();
-            let token2 = window[1].clone();
-            let mut local_map = HashMap::new();
-            *local_map.entry((token1, token2)).or_insert(0) += 1;
-            local_map
-        })
+        .fold(
+            || HashMap::with_capacity(estimated_capacity),
+            |mut local_map, window| {
+                let token1 = &window[0];
+                let token2 = &window[1];
+                *local_map.entry((token1.clone(), token2.clone())).or_insert(0) += 1;
+                local_map
+            }
+        )
         .reduce(
-            || HashMap::new(),
-            |mut acc, mut elem| {
-                for (key, value) in elem.drain() {
+            || HashMap::with_capacity(estimated_capacity),
+            |mut acc, elem| {
+                for (key, value) in elem {
                     *acc.entry(key).or_insert(0) += value;
-                } 
+                }
                 acc
             }
         )
