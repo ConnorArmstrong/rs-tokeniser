@@ -1,4 +1,5 @@
 use std::{collections::HashMap, fs, io, path::Path};
+use rayon::prelude::*;
 use serde_json; // Ensure serde_json is available for JSON processing
 use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
@@ -31,7 +32,7 @@ impl Tokeniser {
         //println!("Tokens: {:?}", tokens);
     
         let vocab_map: HashMap<String, usize> = tokens
-            .iter()
+            .par_iter()
             .enumerate()
             .map(|(index, token)| (token.to_owned(), index))
             .collect();
@@ -64,10 +65,11 @@ impl Tokeniser {
 
         let input_size = input.len();
 
-        let mut position: Vec<CharInfo> = input.chars()
+        let mut position: Vec<CharInfo> = input.par_chars()
             .filter(|&c| c != '\n')
             .map(|c| (c.to_ascii_lowercase().to_string(), None))
             .collect();
+
 
         // iterate through every token
         // slide a window of said token over position vector -- ie if token is 3 characters long look at the 3 consecutive indices
@@ -81,7 +83,7 @@ impl Tokeniser {
         for (location, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
             let window_size = token.len();
             
-            if window_size > input_size { // if a tokens length is greater than the input its definately not made up of the token
+            if window_size > input_size { // if a tokens length is greater than the input its not made up of the token
                 continue;
             }
 
@@ -114,20 +116,23 @@ impl Tokeniser {
         let output =  self.recreate_string(&position);
 
         self.decoded = Some(output.clone()); // For now
-        return output;
+        output
     }
 
-    fn recreate_string(&self, position_vector: &Vec<CharInfo>) -> Vec<String> {
+    fn recreate_string(&self, position_vector: &[CharInfo]) -> Vec<String> {
         let mut result = Vec::new();
+        let mut last_token: Option<usize> = None;
 
         // WARNING: for the time being this could get rid of intential successive equal tokens - add count value to the option usize ie Option<usize, usize)
-        for item in position_vector.iter().map(|(_, e)| e).collect::<Vec<_>>() {
-            let num = item.expect("Encountered unknown token"); 
-            if result.last() != Some(&num) {
-                result.push(num);
+        for (_, e) in position_vector {
+            if let Some(num) = e {
+                if Some(num) != last_token.as_ref() {
+                    last_token = Some(*num);
+                    result.push(num);
+                }
             }
         }
-        return result.iter().map(|&index: &usize| self.vocab[index].clone()).collect(); // convert the index to the respective string
+        result.into_par_iter().map(|index| self.vocab[*index].clone()).collect()
     }
 
     pub fn pretty_print(&self) {

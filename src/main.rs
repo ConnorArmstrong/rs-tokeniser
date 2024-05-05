@@ -23,22 +23,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("Reading file...");
     let filename = "src/text8.txt"; // 124_301_826 words
+    
     /*
         let file_content = fs::read_to_string(filename)?;
-    let contents: Vec<String> = file_content // need to have a Vec<String>, where each string is a single character.
+    let mut contents: Vec<String> = file_content // need to have a Vec<String>, where each string is a single character.
         .chars()
         .map(|c| c.to_string())
         .filter(|f| f != "\n")
         .collect();
     */
 
-    //let contents = _read_words(&filename, 1500000);
-    println!("file read.");
-    let mut tokenizer: Tokeniser = Tokeniser::new().unwrap();
-    tokenizer.tokenize("Hello world".to_string());
-    tokenizer.pretty_print();
     
-    run();
+
+    let contents = _read_words(&filename, 2000000);
+    println!("file read.");
+
 
     let text = "the quick brown fox jumped over the lazy dog and that was just the beginning of the tale 
         it told of its adventures throughout the forest the fox always loved to explore and discover new places and 
@@ -64,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    /*
+    
     println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
@@ -75,15 +74,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let (vocab, _tokenized_string) = bpe(contents, 30000, initial_vocab);
+    let (vocab, _tokenized_string) = bpe(contents, 17000, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
-    */
     
-
-
     //tokenizer.compare_to_original(text.to_string(), _tokenized_string);
-
+    let mut tokenizer = Tokeniser::new().unwrap();
     tokenizer.tokenize(text.to_string());
     tokenizer.pretty_print();
     println!("\n");
@@ -100,7 +96,7 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
     let mut vocab = initial_vocab;
     let mut pair_count;
     let mut count = 0;
-    println!("Initial Vocab: {:?}", vocab);  // Debug print statement
+    //println!("Initial Vocab: {:?}", vocab);  // Debug print statement
 
     let corpus_ptr = &mut corpus as *mut Vec<String>; // Get a raw pointer to corpus to sidepass the borrow checker
 
@@ -168,10 +164,10 @@ fn merge_pair(pair: (String, String), vocab: &mut HashMap<String, i32>, data: &m
     vocab.insert(new_token.clone(), count_token1 + count_token2);
 
     let mut i = 0;
-    while i < data.len() {
-        if i + 1 < data.len() && data[i] == pair.0 && data[i + 1] == pair.1 {
+    while i < data.len() - 1 {
+        if data[i] == pair.0 && data[i + 1] == pair.1 {
             data[i] = new_token.clone();
-            data.remove(i + 1); // Remove the next element as it's part of the merged pair
+            data.remove(i + 1); // Remove the next element as it's now been merged
         } else {
             i += 1;
         }
@@ -242,7 +238,7 @@ fn _read_words(file_path: &str, word_count: usize) -> Vec<String> {
 
             // Convert each word to characters and add spaces between words
             for char in word.chars() {
-                contents.push(char.to_string());
+                contents.push(char.to_string().to_ascii_lowercase());
             }
             contents.push(" ".to_string()); // Add a space after each word
             

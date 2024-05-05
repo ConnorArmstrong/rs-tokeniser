@@ -1,20 +1,19 @@
 use eframe::{egui, App, Frame};
 use egui::{CentralPanel, Context, RichText};
-use std::collections::HashMap;
 
-use crate::tokeniser::{self, Tokeniser};
+use crate::tokeniser::Tokeniser;
 
 
 
 #[derive(Default)]
-pub struct TextEditDemo {
+pub struct TokenVisualiser {
     pub text: String,
     pub tokeniser: Tokeniser,
     pub last_text: String, // To store the last state of the text
     pub tokenised_text: Vec<String>, // To store the tokenised text
 }
 
-impl TextEditDemo {
+impl TokenVisualiser {
     fn ui(&mut self, ui: &mut egui::Ui) {
         let Self {
             text,
@@ -111,13 +110,13 @@ impl TextEditDemo {
 }
 
 struct MyApp {
-    text_edit_demo: TextEditDemo,
+    text_edit_demo: TokenVisualiser,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            text_edit_demo: TextEditDemo {
+            text_edit_demo: TokenVisualiser {
                 tokeniser: Tokeniser::new().unwrap(), // Initialize the Tokeniser instance here
                 ..Default::default()
             },
@@ -161,6 +160,8 @@ fn generate_color_for_token(token: &str) -> egui::Color32 {
 
     egui::Color32::from_rgb(nr, ng, nb)
 }
+
+// the following was mostly stolen
 
 fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     let r = r as f32 / 255.0;
