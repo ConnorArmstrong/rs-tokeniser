@@ -13,8 +13,10 @@ use serde_json;
 use std::io::{BufRead, BufReader};
 
 use crate::tokeniser::Tokeniser;
+use crate::visualiser::run;
 
 mod tokeniser;
+mod visualiser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     
@@ -30,9 +32,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    let contents = _read_words(&filename, 1500000);
+    //let contents = _read_words(&filename, 1500000);
     println!("file read.");
+    let mut tokenizer: Tokeniser = Tokeniser::new().unwrap();
+    tokenizer.tokenize("Hello world".to_string());
+    tokenizer.pretty_print();
     
+    run();
 
     let text = "the quick brown fox jumped over the lazy dog and that was just the beginning of the tale 
         it told of its adventures throughout the forest the fox always loved to explore and discover new places and 
@@ -58,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-
+    /*
     println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
@@ -72,8 +78,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (vocab, _tokenized_string) = bpe(contents, 30000, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
-
-    let mut tokenizer: Tokeniser = Tokeniser::new().unwrap();
+    */
+    
 
 
     //tokenizer.compare_to_original(text.to_string(), _tokenized_string);
@@ -141,7 +147,7 @@ fn count_adjacent_pairs(tokens: &[String]) -> HashMap<(String, String), i32> {
             |mut acc, mut elem| {
                 for (key, value) in elem.drain() {
                     *acc.entry(key).or_insert(0) += value;
-                }
+                } 
                 acc
             }
         )
@@ -260,4 +266,42 @@ fn _read_words(file_path: &str, word_count: usize) -> Vec<String> {
     }
 
     contents
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initialize_vocab() {
+        let data = vec!["a".to_string(), "b".to_string(), "a".to_string(), "c".to_string()];
+        let vocab = initialize_vocab(&data);
+        assert_eq!(vocab.get("a"), Some(&2));
+        assert_eq!(vocab.get("b"), Some(&1));
+        assert_eq!(vocab.get("c"), Some(&1));
+        assert_eq!(vocab.get("d"), None);
+    }
+
+    #[test]
+    fn test_merge_pair() {
+        let mut vocab = HashMap::new();
+        vocab.insert("a".to_string(), 2);
+        vocab.insert("b".to_string(), 3);
+        let mut data = vec!["a".to_string(), "b".to_string(), "c".to_string(), "a".to_string(), "b".to_string()];
+        merge_pair(("a".to_string(), "b".to_string()), &mut vocab, &mut data);
+        assert_eq!(data, vec!["ab".to_string(), "c".to_string(), "ab".to_string()]);
+        assert_eq!(vocab.get("ab"), Some(&(2 + 3)));
+    }
+
+    #[test]
+    fn test_count_adjacent_pairs() {
+        let data = vec!["a".to_string(), "b".to_string(), "a".to_string(), "c".to_string(), "a".to_string(), "b".to_string()];
+        let pair_count = count_adjacent_pairs(&data);
+        assert_eq!(pair_count.get(&("a".to_string(), "b".to_string())), Some(&2));
+        assert_eq!(pair_count.get(&("b".to_string(), "a".to_string())), Some(&1));
+        assert_eq!(pair_count.get(&("a".to_string(), "c".to_string())), Some(&1));
+        assert_eq!(pair_count.get(&("c".to_string(), "a".to_string())), Some(&1));
+    }
 }

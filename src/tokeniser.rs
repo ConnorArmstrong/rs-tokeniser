@@ -3,6 +3,9 @@ use serde_json; // Ensure serde_json is available for JSON processing
 use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
 
+pub type CharInfo = (String, Option<usize>);
+
+#[derive(Default)]
 pub struct Tokeniser {
     vocab: Vec<String>, // The list of tokens
     decoded: Option<Vec<String>>, // the final output
@@ -55,14 +58,16 @@ impl Tokeniser {
     }
 
     pub fn tokenize(&mut self, input: String) -> Vec<String> {
-        type CharInfo = (String, Option<usize>); // where the usize would be the corresponding token index in the vocab array
-                
-        let mut position: Vec<CharInfo> = input
-                                    .clone()
-                                    .chars()
-                                    .filter(|c| *c != '\n')
-                                    .map(|c| (c.to_string(), None))
-                                    .collect();
+        if input.is_empty() {
+            return Vec::new();
+        }
+
+        let input_size = input.len();
+
+        let mut position: Vec<CharInfo> = input.chars()
+            .filter(|&c| c != '\n')
+            .map(|c| (c.to_ascii_lowercase().to_string(), None))
+            .collect();
 
         // iterate through every token
         // slide a window of said token over position vector -- ie if token is 3 characters long look at the 3 consecutive indices
@@ -75,6 +80,10 @@ impl Tokeniser {
         // this works because the tokens are sorted - the larger tokens filters as much as possible and all remaining tokens can be done by character
         for (location, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
             let window_size = token.len();
+            
+            if window_size > input_size { // if a tokens length is greater than the input its definately not made up of the token
+                continue;
+            }
 
             for i in 0..=position.len() - window_size { // create the window
                 let window = &position[i..i + window_size]; // slide window across
@@ -108,12 +117,12 @@ impl Tokeniser {
         return output;
     }
 
-    fn recreate_string(&self, position_vector: &Vec<(String, Option<usize>)>) -> Vec<String> {
+    fn recreate_string(&self, position_vector: &Vec<CharInfo>) -> Vec<String> {
         let mut result = Vec::new();
 
         // WARNING: for the time being this could get rid of intential successive equal tokens - add count value to the option usize ie Option<usize, usize)
         for item in position_vector.iter().map(|(_, e)| e).collect::<Vec<_>>() {
-            let num = item.expect("Uknown or unencoded token"); 
+            let num = item.expect("Encountered unknown token"); 
             if result.last() != Some(&num) {
                 result.push(num);
             }
@@ -127,8 +136,6 @@ impl Tokeniser {
             return
         }
 
-        println!();
-
         for token in self.decoded.as_ref().unwrap() {
             let token_index = self.vocab_map.get(token).unwrap_or(&usize::max_value()); // if token not encountered make it white
             let token_colour = self.colour_map.get(token_index).unwrap_or(&(0, 0, 0));
@@ -139,9 +146,10 @@ impl Tokeniser {
                 b: token_colour.2,
             }));
         }
+        println!();
     }
 
-    pub fn compare_to_original(&mut self, original_string: String, tokenized_data: Vec<String>) {
+    pub fn _compare_to_original(&mut self, original_string: String, tokenized_data: Vec<String>) {
         for token in tokenized_data {
             let token_index = self.vocab_map.get(&token).unwrap_or(&usize::max_value()); // if token not encountered make it white
             let token_colour = self.colour_map.get(token_index).unwrap_or(&(0, 0, 0));
@@ -155,8 +163,11 @@ impl Tokeniser {
         println!();
         self.tokenize(original_string);
         self.pretty_print();
+    }
 
-
+    pub fn _get_back_out(&self, string: String) -> String {
+        println!("calling: {}", string);
+        return string.clone();
     }
     
 }
