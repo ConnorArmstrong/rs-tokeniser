@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    let contents = _read_words(&filename, 1000000);
+    let contents = _read_words(&filename, 1500000);
     println!("file read.");
     
 
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let (vocab, _tokenized_string) = bpe(contents, 55000, initial_vocab);
+    let (vocab, _tokenized_string) = bpe(contents, 30000, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
 
