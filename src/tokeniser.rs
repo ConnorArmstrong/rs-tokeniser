@@ -29,8 +29,8 @@ impl Tokeniser {
         // Collect only the keys (tokens) from the map and sort them by length
         let mut tokens: Vec<String> = map.keys().cloned().collect();
         tokens.sort_by(|a, b| b.len().cmp(&a.len())); // sort them in decreasing order by length
-        //println!("Tokens: {:?}", tokens);
-    
+        println!("Token Amount: {}", tokens.len());
+
         let vocab_map: HashMap<String, usize> = tokens
             .par_iter()
             .enumerate()
@@ -67,7 +67,7 @@ impl Tokeniser {
 
         let mut position: Vec<CharInfo> = input.par_chars()
             .filter(|&c| c != '\n')
-            .map(|c| (c.to_ascii_lowercase().to_string(), None))
+            .map(|c| (c.to_ascii_lowercase().to_string(), None)) // lowercase/upper case handled the same
             .collect();
 
 
@@ -84,7 +84,7 @@ impl Tokeniser {
             let window_size = token.len();
             
             if window_size > input_size { // if a tokens length is greater than the input its not made up of the token
-                continue;
+                continue; // for the time being I cant filter the vocab list because i need the specific index
             }
 
             for i in 0..=position.len() - window_size { // create the window
@@ -102,7 +102,7 @@ impl Tokeniser {
         
         for item in position.iter() {
             let (token, value) = item;
-            if value.is_none() {
+            if value.is_none() { // character not covered by the token set (currently mainly punctuation)
                 count += 1;
                 missing_vec.push(token.to_owned())
             }

@@ -63,7 +63,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    
+    run();
+
     println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
@@ -131,11 +132,9 @@ fn bpe(mut corpus: Vec<String>, vocab_size: usize, initial_vocab: HashMap<String
 
 fn count_adjacent_pairs(tokens: &[String]) -> HashMap<(String, String), i32> {
     // Estimate the capacity to reduce rehashing
-    let estimated_capacity = tokens.len() / 2;
-
     tokens.par_windows(2)
         .fold(
-            || HashMap::with_capacity(estimated_capacity),
+            || HashMap::new(),
             |mut local_map, window| {
                 let token1 = &window[0];
                 let token2 = &window[1];
@@ -144,7 +143,7 @@ fn count_adjacent_pairs(tokens: &[String]) -> HashMap<(String, String), i32> {
             }
         )
         .reduce(
-            || HashMap::with_capacity(estimated_capacity),
+            || HashMap::new(),
             |mut acc, elem| {
                 for (key, value) in elem {
                     *acc.entry(key).or_insert(0) += value;
