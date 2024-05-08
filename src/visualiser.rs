@@ -91,7 +91,9 @@ impl TokenVisualiser {
         // Check if the text has changed
         if &*last_text != text {
             *last_text = text.clone(); // Update last_text
-            *tokenised_text = tokeniser.tokenize(self.text.clone()); // Update tokenised text
+            *tokenised_text = tokeniser.tokenize(&self.text); // Update tokenised text
+            //*tokenised_text = tokeniser.extract_tokens(self.text.as_str());
+            println!("{}", tokenised_text.len());
         }
 
         // Always display the tokenised text with background highlight

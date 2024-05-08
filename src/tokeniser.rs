@@ -3,15 +3,16 @@ use rayon::prelude::*;
 use serde_json; // Ensure serde_json is available for JSON processing
 use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
+use daachorse::{CharwiseDoubleArrayAhoCorasickBuilder, MatchKind, CharwiseDoubleArrayAhoCorasick};
 
-pub type CharInfo = (String, Option<usize>);
+pub type CharInfo = (char, Option<usize>);
 
 #[derive(Default)]
 pub struct Tokeniser {
     vocab: Vec<String>, // The list of tokens
     decoded: Option<Vec<String>>, // the final output
     vocab_map: HashMap<String, usize>, // mapping each string to its index
-    colour_map: HashMap<usize, (u8, u8, u8)>,
+    colour_map: HashMap<usize, (u8, u8, u8)>, // maps each token to a unique colour (thats light enough to read text against)
 }
 
 
@@ -58,16 +59,20 @@ impl Tokeniser {
         })
     }
 
-    pub fn tokenize(&mut self, input: String) -> Vec<String> {
-        if input.is_empty() {
+    pub fn tokenize(&mut self, input: &String) -> Vec<String> {
+        let input = input.to_ascii_lowercase(); // only trained on lowercase letters
+
+        if input.is_empty() { // Default cases
             return Vec::new();
+        } else if input.len() == 1 {
+            return vec![input.to_string()];
         }
 
         let input_size = input.len();
 
         let mut position: Vec<CharInfo> = input.par_chars()
             .filter(|&c| c != '\n')
-            .map(|c| (c.to_ascii_lowercase().to_string(), None)) // lowercase/upper case handled the same
+            .map(|c| (c, None)) 
             .collect();
 
 
@@ -80,7 +85,7 @@ impl Tokeniser {
         // continue through all tokens
 
         // this works because the tokens are sorted - the larger tokens filters as much as possible and all remaining tokens can be done by character
-        for (location, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
+        for (token_index, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
             let window_size = token.len();
             //let mut count = 0; // this would keep track of the occurences of successive tokens
 
@@ -90,12 +95,12 @@ impl Tokeniser {
 
             for i in 0..=position.len() - window_size { // create the window
                 let window = &position[i..i + window_size]; // slide window across
-                if window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token && window.iter().all(|(_, b)| *b == None) { // token match
+                if window.iter().map(|&(c, _)| c).eq(token.chars()) && window.iter().all(|(_, b)| *b == None) { // token match
                     for index in i..i + window_size {
-                        position[index].1 = Some(location); // Mark with the token index
+                        position[index].1 = Some(token_index); // Mark with the token index
                     }
                 }
-            }
+            } // window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token
         }
 
         let mut count = 0; // Debugging and Error information
@@ -167,7 +172,7 @@ impl Tokeniser {
             }));
         }
         println!();
-        self.tokenize(original_string);
+        self.tokenize(&original_string);
         self.pretty_print();
     }
 
@@ -175,5 +180,30 @@ impl Tokeniser {
         println!("calling: {}", string);
         return string.clone();
     }
+
+    pub fn extract_tokens(&self, input: &str) -> Vec<String> {
+        let tokens: Vec<&str> = self.vocab.iter().map(|t| t.as_str()).collect();
+    
+        // Prepare the Aho-Corasick automaton with the given tokens
+        let pma: CharwiseDoubleArrayAhoCorasick<usize> = CharwiseDoubleArrayAhoCorasickBuilder::new()
+            .match_kind(MatchKind::Standard)
+            .build(&tokens)
+            .unwrap();
+    
+        // Search in the input string and collect all matches
+        let mut results = Vec::new();
+        let mut last_match_end = 0;
+    
+        for mat in pma.find_iter(input) {
+            // Ensure non-overlapping tokens by checking where the previous match ended
+            if mat.start() >= last_match_end {
+                results.push(input[mat.start()..mat.end()].to_string());
+                last_match_end = mat.end(); // Update last match end to current match's end
+            }
+        }
+    
+        results
+    }
+
     
 }

@@ -6,11 +6,12 @@
 use std::fs::{self, File};
 use std::collections::HashMap;
 use std::path::Path;
-use std::io;
+use std::{io, time};
 use rayon::prelude::*;
 use std::io::Write;
 use serde_json;
 use std::io::{BufRead, BufReader};
+use std::time::Instant;
 
 use crate::tokeniser::Tokeniser;
 use crate::visualiser::run;
@@ -35,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
 
-    let contents = _read_words(&filename, 2000000);
+    // let contents = _read_words(&filename, 2000000);
     println!("file read.");
 
 
@@ -63,9 +64,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    run();
+    //run();
 
-    println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
+    /*
+        println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
     if !Path::new(initial_vocab_path).exists() {
@@ -79,14 +81,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
     
+     */
+
+    
     //tokenizer.compare_to_original(text.to_string(), _tokenized_string);
     let mut tokenizer = Tokeniser::new().unwrap();
-    tokenizer.tokenize(text.to_string());
+    let before = Instant::now();
+    for _ in 0..10 {
+        tokenizer.tokenize(&text.to_string());
+    }
+    
     tokenizer.pretty_print();
     println!("\n");
-    tokenizer.tokenize(other_text.to_string());
+    for _ in 0..10 {
+        tokenizer.tokenize(&other_text.to_string());
+    }
     tokenizer.pretty_print();
-
+    println!("Elapsed time: {:.2?}", before.elapsed());
     Ok(())
 }
 
