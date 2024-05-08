@@ -82,14 +82,15 @@ impl Tokeniser {
         // this works because the tokens are sorted - the larger tokens filters as much as possible and all remaining tokens can be done by character
         for (location, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
             let window_size = token.len();
-            
+            //let mut count = 0; // this would keep track of the occurences of successive tokens
+
             if window_size > input_size { // if a tokens length is greater than the input its not made up of the token
                 continue; // for the time being I cant filter the vocab list because i need the specific index
             }
 
             for i in 0..=position.len() - window_size { // create the window
                 let window = &position[i..i + window_size]; // slide window across
-                if window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token && window.iter().all(|(_, b)| *b == None) {
+                if window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token && window.iter().all(|(_, b)| *b == None) { // token match
                     for index in i..i + window_size {
                         position[index].1 = Some(location); // Mark with the token index
                     }
