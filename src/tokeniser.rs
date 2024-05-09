@@ -5,7 +5,7 @@ use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
 use daachorse::{CharwiseDoubleArrayAhoCorasickBuilder, MatchKind, CharwiseDoubleArrayAhoCorasick};
 
-pub type CharInfo = (char, Option<usize>);
+pub type CharInfo = (char, Option<usize>); // Might need to make this 
 
 #[derive(Default)]
 pub struct Tokeniser {
@@ -59,7 +59,7 @@ impl Tokeniser {
         })
     }
 
-    pub fn tokenize(&mut self, input: &String) -> Vec<String> {
+    pub fn tokenise(&mut self, input: &String) -> Vec<String> {
         let input = input.to_ascii_lowercase(); // only trained on lowercase letters
 
         if input.is_empty() { // Default cases
@@ -70,7 +70,7 @@ impl Tokeniser {
 
         let input_size = input.len();
 
-        let mut position: Vec<CharInfo> = input.par_chars()
+        let mut position: Vec<CharInfo> = input.chars()
             .filter(|&c| c != '\n')
             .map(|c| (c, None)) 
             .collect();
@@ -93,15 +93,19 @@ impl Tokeniser {
                 continue; // for the time being I cant filter the vocab list because i need the specific index
             }
 
+            if position.iter().all(|(_, c)| c.is_some()) { // end the token checking if all characters are accounted for
+                break;
+            }
+
             for i in 0..=position.len() - window_size { // create the window
                 let window = &position[i..i + window_size]; // slide window across
-                if window.iter().map(|&(c, _)| c).eq(token.chars()) && window.iter().all(|(_, b)| *b == None) { // token match
+                if window.iter().zip(token.chars()).all(|(&(c, b), t)| c == t && b.is_none()) { // check if the token matches
                     for index in i..i + window_size {
                         position[index].1 = Some(token_index); // Mark with the token index
                     }
                 }
-            } // window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token
-        }
+            } // window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token && window.iter().all(|(_, b)| *b == None) - 124s
+        }     // window.iter().map(|&(c, _)| c).eq(token.chars()) && window.iter().all(|(_, b)| *b == None) - 800ms (current 550-600ms)
 
         let mut count = 0; // Debugging and Error information
         let mut missing_vec = Vec::new();
@@ -130,7 +134,7 @@ impl Tokeniser {
         let mut last_token: Option<usize> = None;
 
         // WARNING: for the time being this could get rid of intential successive equal tokens - add count value to the option usize ie Option<usize, usize)
-        for (_, e) in position_vector {
+        for (_, e) in position_vector { // condense each (char, index) map to just the respective token index
             if let Some(num) = e {
                 if Some(num) != last_token.as_ref() {
                     last_token = Some(*num);
@@ -138,7 +142,7 @@ impl Tokeniser {
                 }
             }
         }
-        result.into_par_iter().map(|index| self.vocab[*index].clone()).collect()
+        result.into_iter().map(|index| self.vocab[*index].clone()).collect() // map the index to the token
     }
 
     pub fn pretty_print(&self) {
@@ -172,13 +176,8 @@ impl Tokeniser {
             }));
         }
         println!();
-        self.tokenize(&original_string);
+        self.tokenise(&original_string);
         self.pretty_print();
-    }
-
-    pub fn _get_back_out(&self, string: String) -> String {
-        println!("calling: {}", string);
-        return string.clone();
     }
 
     pub fn extract_tokens(&self, input: &str) -> Vec<String> {

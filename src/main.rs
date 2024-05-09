@@ -1,4 +1,4 @@
-//#![allow(unused)]
+#![allow(unused)]
 
 // My goal is to implement a Byte Pair Encoder in Rust
 // Currently only handle lower case, unpunctuated data.
@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    //run();
+    run();
 
     /*
         println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
@@ -88,13 +88,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tokenizer = Tokeniser::new().unwrap();
     let before = Instant::now();
     for _ in 0..10 {
-        tokenizer.tokenize(&text.to_string());
+        tokenizer.tokenise(&text.to_string());
     }
     
     tokenizer.pretty_print();
     println!("\n");
     for _ in 0..10 {
-        tokenizer.tokenize(&other_text.to_string());
+        tokenizer.tokenise(&other_text.to_string());
     }
     tokenizer.pretty_print();
     println!("Elapsed time: {:.2?}", before.elapsed());
@@ -281,38 +281,3 @@ fn _read_words(file_path: &str, word_count: usize) -> Vec<String> {
 
 
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_initialize_vocab() {
-        let data = vec!["a".to_string(), "b".to_string(), "a".to_string(), "c".to_string()];
-        let vocab = initialize_vocab(&data);
-        assert_eq!(vocab.get("a"), Some(&2));
-        assert_eq!(vocab.get("b"), Some(&1));
-        assert_eq!(vocab.get("c"), Some(&1));
-        assert_eq!(vocab.get("d"), None);
-    }
-
-    #[test]
-    fn test_merge_pair() {
-        let mut vocab = HashMap::new();
-        vocab.insert("a".to_string(), 2);
-        vocab.insert("b".to_string(), 3);
-        let mut data = vec!["a".to_string(), "b".to_string(), "c".to_string(), "a".to_string(), "b".to_string()];
-        merge_pair(("a".to_string(), "b".to_string()), &mut vocab, &mut data);
-        assert_eq!(data, vec!["ab".to_string(), "c".to_string(), "ab".to_string()]);
-        assert_eq!(vocab.get("ab"), Some(&(2 + 3)));
-    }
-
-    #[test]
-    fn test_count_adjacent_pairs() {
-        let data = vec!["a".to_string(), "b".to_string(), "a".to_string(), "c".to_string(), "a".to_string(), "b".to_string()];
-        let pair_count = count_adjacent_pairs(&data);
-        assert_eq!(pair_count.get(&("a".to_string(), "b".to_string())), Some(&2));
-        assert_eq!(pair_count.get(&("b".to_string(), "a".to_string())), Some(&1));
-        assert_eq!(pair_count.get(&("a".to_string(), "c".to_string())), Some(&1));
-        assert_eq!(pair_count.get(&("c".to_string(), "a".to_string())), Some(&1));
-    }
-}

@@ -25,7 +25,7 @@ impl TokenVisualiser {
         let output = egui::TextEdit::multiline(text)
             .hint_text("Type something!")
             .show(ui);
-
+        
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 0.0;
             ui.label("Selected text: ");
@@ -35,14 +35,6 @@ impl TokenVisualiser {
             }
         });
 
-        let anything_selected = output
-            .cursor_range
-            .map_or(false, |cursor| !cursor.is_empty());
-
-        ui.add_enabled(
-            anything_selected,
-            egui::Label::new("Press ctrl+Y to toggle the case of selected text (cmd+Y on Mac)"),
-        );
 
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, egui::Key::Y)) {
             if let Some(text_cursor_range) = output.cursor_range {
@@ -60,54 +52,32 @@ impl TokenVisualiser {
             }
         }
 
-        ui.horizontal(|ui| {
-            ui.label("Move cursor to the:");
-
-            if ui.button("start").clicked() {
-                let text_edit_id = output.response.id;
-                if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), text_edit_id) {
-                    let ccursor = egui::text::CCursor::new(0);
-                    state
-                        .cursor
-                        .set_char_range(Some(egui::text::CCursorRange::one(ccursor)));
-                    state.store(ui.ctx(), text_edit_id);
-                    ui.ctx().memory_mut(|mem| mem.request_focus(text_edit_id));
-                }
-            }
-
-            if ui.button("end").clicked() {
-                let text_edit_id = output.response.id;
-                if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), text_edit_id) {
-                    let ccursor = egui::text::CCursor::new(text.chars().count());
-                    state
-                        .cursor
-                        .set_char_range(Some(egui::text::CCursorRange::one(ccursor)));
-                    state.store(ui.ctx(), text_edit_id);
-                    ui.ctx().memory_mut(|mem| mem.request_focus(text_edit_id));
-                }
-            }
-        });
-
         // Check if the text has changed
-        if &*last_text != text {
+        if last_text != text {
             *last_text = text.clone(); // Update last_text
-            *tokenised_text = tokeniser.tokenize(&self.text); // Update tokenised text
+            *tokenised_text = tokeniser.tokenise(&self.text); // Update tokenised text
             //*tokenised_text = tokeniser.extract_tokens(self.text.as_str());
-            println!("{}", tokenised_text.len());
+            //println!("{}", tokenised_text.len());
         }
 
-        // Always display the tokenised text with background highlight
+        // display the tokenised text with background highlight
         ui.label("Tokenised text:");
-        ui.horizontal(|ui| {
-            let font_size = 26.0; // Adjust the font size to your preference
-            for token in tokenised_text {
-                let color = generate_color_for_token(&token);
-                ui.label(RichText::new(token.clone())
-                    .size(font_size)
-                    .background_color(color)
-                );
-            }
+        ui.group(|ui| {
+            let font_size = 26.0;
+        
+            ui.horizontal_wrapped(|ui| {
+                for token in tokenised_text {
+                    let color = generate_color_for_token(&token); // colour has to be light enough to see text on
+                    let text = RichText::new(token.clone())
+                        .size(font_size)
+                        .background_color(color);
+                    
+                    // Add the rich text to the UI and let `horizontal_wrapped` handle the wrapping.
+                    ui.add(egui::Label::new(text));
+                }
+            });
         });
+        
     }
 }
 
