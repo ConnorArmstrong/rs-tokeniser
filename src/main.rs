@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
 
-    // let contents = _read_words(&filename, 2000000);
+    let contents = _read_words(&filename, 1500000);
     println!("file read.");
 
 
@@ -64,9 +64,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     */
 
-    run();
+    //run();
 
-    /*
+    
         println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
@@ -77,14 +77,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
 
     let initial_vocab = load_initial_vocab(initial_vocab_path)?;
-    let (vocab, _tokenized_string) = bpe(contents, 17000, initial_vocab);
+    let (vocab, _tokenized_string) = bpe(contents, 10000, initial_vocab);
 
     save_vocabulary(&vocab, "output/vocabulary.json")?;
-    
-     */
 
-    
-    //tokenizer.compare_to_original(text.to_string(), _tokenized_string);
     let mut tokenizer = Tokeniser::new().unwrap();
     let before = Instant::now();
     for _ in 0..10 {
@@ -98,6 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     tokenizer.pretty_print();
     println!("Elapsed time: {:.2?}", before.elapsed());
+
     Ok(())
 }
 
