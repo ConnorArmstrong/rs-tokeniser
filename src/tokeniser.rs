@@ -5,7 +5,7 @@ use colored::{Colorize, CustomColor};
 use rand::{thread_rng, Rng};
 use daachorse::{CharwiseDoubleArrayAhoCorasickBuilder, MatchKind, CharwiseDoubleArrayAhoCorasick};
 
-pub type CharInfo = (char, Option<usize>); // Might need to make this 
+pub type CharInfo = (char, Option<(usize, usize)>); // Might need to make this CharInfo = (char, Option<(usize, usize))
 
 #[derive(Default)]
 pub struct Tokeniser {
@@ -96,13 +96,15 @@ impl Tokeniser {
             if position.iter().all(|(_, c)| c.is_some()) { // end the token checking if all characters are accounted for
                 break;
             }
+            let mut count = 0;
 
             for i in 0..=position.len() - window_size { // create the window
                 let window = &position[i..i + window_size]; // slide window across
                 if window.iter().zip(token.chars()).all(|(&(c, b), t)| c == t && b.is_none()) { // check if the token matches
                     for index in i..i + window_size {
-                        position[index].1 = Some(token_index); // Mark with the token index
+                        position[index].1 = Some((token_index, count)); // Mark with the token index
                     }
+                    count += 1;
                 }
             } // window.iter().map(|(c, _)| c.to_owned()).collect::<Vec<_>>().join("") == *token && window.iter().all(|(_, b)| *b == None) - 124s
         }     // window.iter().map(|&(c, _)| c).eq(token.chars()) && window.iter().all(|(_, b)| *b == None) - 800ms (current 550-600ms)
@@ -129,12 +131,13 @@ impl Tokeniser {
         output
     }
 
+
+    // CharInfo = (char, Option<(usize, usize)>)
     fn recreate_string(&self, position_vector: &[CharInfo]) -> Vec<String> {
         let mut result = Vec::new();
-        let mut last_token: Option<usize> = None;
+        let mut last_token: Option<(usize, usize)> = None;
 
-        // WARNING: for the time being this could get rid of intential successive equal tokens - add count value to the option usize ie Option<usize, usize)
-        for (_, e) in position_vector { // condense each (char, index) map to just the respective token index
+        for (_, e) in position_vector { // condense each (char, index) map to just the respective token index and count
             if let Some(num) = e {
                 if Some(num) != last_token.as_ref() {
                     last_token = Some(*num);
@@ -142,7 +145,69 @@ impl Tokeniser {
                 }
             }
         }
-        result.into_iter().map(|index| self.vocab[*index].clone()).collect() // map the index to the token
+        result.into_iter().map(|index| self.vocab[index.0].clone()).collect() // map the index to the token
+    }
+
+    pub fn get_tokens_from_text(&self, text: &String) -> Vec<usize> {
+        // same process as tokenise()
+        let input = text.to_ascii_lowercase(); // only trained on lowercase letters
+
+        if input.is_empty() { // Default cases
+            return Vec::new();
+        } else if input.len() == 1 {
+            return vec![*self.vocab_map.get(&input).unwrap_or(&(0 as usize))];
+        }
+
+        let input_size = input.len();
+
+        let mut position: Vec<CharInfo> = input.chars()
+            .filter(|&c| c != '\n')
+            .map(|c| (c, None)) 
+            .collect();
+
+        for (token_index, token) in self.vocab.iter().enumerate() { // every character in the string is guarenteed to be covered by one of the tokens
+            let window_size = token.len();
+            //let mut count = 0; // this would keep track of the occurences of successive tokens
+
+            if window_size > input_size { // if a tokens length is greater than the input its not made up of the token
+                continue; // for the time being I cant filter the vocab list because i need the specific index
+            }
+
+            if position.iter().all(|(_, c)| c.is_some()) { // end the token checking if all characters are accounted for
+                break;
+            }
+
+            let mut count = 0;
+
+            for i in 0..=position.len() - window_size { // create the window
+                let window = &position[i..i + window_size]; // slide window across
+                if window.iter().zip(token.chars()).all(|(&(c, b), t)| c == t && b.is_none()) { // check if the token matches
+                    for index in i..i + window_size {
+                        position[index].1 = Some((token_index, count)); // Mark with the token index
+                    }
+                    count += 1;
+                }
+            }
+        }
+        // ie we now should have a completed Vec<CharInfo>
+
+        let mut result = Vec::new();
+        let mut last_token: Option<(usize, usize)> = None;
+
+        for (_, e) in position { // condense each (char, index) map to just the respective token index and count
+            if let Some(num) = e {
+                if Some(num) != last_token {
+                    last_token = Some(num);
+                    result.push(num);
+                }
+            }
+        }
+        result.into_iter().map(|(a, _)| a).collect()
+    }
+
+    pub fn reconstruct(&self, tokens: &[usize]) -> String {
+        /// Similar process to recreate_string()  but this is for reconstructing tokens called from outside the tokeniser
+        tokens.into_iter().map(|index| self.vocab[*index].clone()).collect()
     }
 
     pub fn pretty_print(&self) {
@@ -178,31 +243,5 @@ impl Tokeniser {
         println!();
         self.tokenise(&original_string);
         self.pretty_print();
-    }
-
-    pub fn extract_tokens(&self, input: &str) -> Vec<String> {
-        let tokens: Vec<&str> = self.vocab.iter().map(|t| t.as_str()).collect();
-    
-        // Prepare the Aho-Corasick automaton with the given tokens
-        let pma: CharwiseDoubleArrayAhoCorasick<usize> = CharwiseDoubleArrayAhoCorasickBuilder::new()
-            .match_kind(MatchKind::Standard)
-            .build(&tokens)
-            .unwrap();
-    
-        // Search in the input string and collect all matches
-        let mut results = Vec::new();
-        let mut last_match_end = 0;
-    
-        for mat in pma.find_iter(input) {
-            // Ensure non-overlapping tokens by checking where the previous match ended
-            if mat.start() >= last_match_end {
-                results.push(input[mat.start()..mat.end()].to_string());
-                last_match_end = mat.end(); // Update last match end to current match's end
-            }
-        }
-    
-        results
-    }
-
-    
+    }   
 }

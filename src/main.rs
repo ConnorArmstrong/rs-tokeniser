@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::{io, time};
 use rayon::prelude::*;
-use std::io::Write;
+use std::io::{Read, Write};
 use serde_json;
 use std::io::{BufRead, BufReader};
 use std::time::Instant;
@@ -20,7 +20,7 @@ mod tokeniser;
 mod visualiser;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
+    let mut visualiser = visualiser::run();
     
     println!("Reading file...");
     let filename = "src/text8.txt"; // 124_301_826 words
@@ -36,8 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     
 
-    let contents = _read_words(&filename, 1500000);
-    println!("file read.");
+    //let contents = _read_words(&filename, 120_301_826);
+    //println!("file read.");
 
 
     let text = "the quick brown fox jumped over the lazy dog and that was just the beginning of the tale 
@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     //run();
 
-    
+    /*
         println!("Size of contents: {} bytes", std::mem::size_of_val(&contents));
     let initial_vocab_path = "output/initial_vocab.json";
     
@@ -94,7 +94,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     tokenizer.pretty_print();
     println!("Elapsed time: {:.2?}", before.elapsed());
+     */
 
+    let mut tokeniser = Tokeniser::new().unwrap();
+    let read_start = Instant::now();
+
+    println!("reading string");
+    let initial = _read_file_to_string(filename).unwrap();
+    println!("Time to read file: {:.2?}", read_start.elapsed());
+
+    println!("starting");
+    let starting_time = Instant::now();
+    let tokens = tokeniser.get_tokens_from_text(&initial);
+    let tokenising_time = Instant::now();
+    println!("Time to tokenise: {:.2?}", starting_time.elapsed());
+    println!("tokenised.");
+    let text = tokeniser.reconstruct(&tokens);
+    let reconstruct_time = Instant::now();
+    println!("Time to reconstruct: {:.2?}", tokenising_time.elapsed());
+    //println!("{:?}", tokens);
+    //println!("{:?}", text);
+    println!("reconstructed.");
+
+    println!("It took {:?} to tokenise, and {:?} to reconstruct for a total of {:?}", tokenising_time.duration_since(starting_time), reconstruct_time.duration_since(tokenising_time), reconstruct_time.duration_since(starting_time));
+    
+    _write_string_to_file("tokenised.txt", &format!("{:?}", tokens));
     Ok(())
 }
 
@@ -267,7 +291,7 @@ fn _read_words(file_path: &str, word_count: usize) -> Vec<String> {
     }
 
     // Remove the last space added if it exists
-    if let Some(last) = contents.last() {
+    if let Some(last) = contents.last() { 
         if last == " " {
             contents.pop();
         }
@@ -276,5 +300,15 @@ fn _read_words(file_path: &str, word_count: usize) -> Vec<String> {
     contents
 }
 
+fn _read_file_to_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
+    let mut file = File::open(path)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
 
-
+fn _write_string_to_file<P: AsRef<Path>>(path: P, contents: &str) -> io::Result<()> {
+    let mut file = File::create(path)?;
+    file.write_all(contents.as_bytes())?;
+    Ok(())
+}
