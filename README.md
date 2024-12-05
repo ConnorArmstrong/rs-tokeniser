@@ -1,4 +1,4 @@
-A Basic Byte Pair Encoder Tokeniser.
+A Basic Byte Pair Encoder Tokeniser with a GUI and included training data.
 
 Trains on some given text data, and then reconstructs the input.
 
